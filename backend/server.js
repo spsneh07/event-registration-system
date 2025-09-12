@@ -1,39 +1,40 @@
-require('dotenv').config(); // Load environment variables from .env file
 // Import required modules
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const crypto = require('crypto');
+require('dotenv').config(); // Load environment variables from .env file
 
 // --- Configuration ---
 const PORT = process.env.PORT || 3000;
-
-// --- IMPORTANT ---
-// The connection string is now read from an environment variable named DATABASE_URL.
-// This is more secure and is standard practice for deployment.
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-    console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    console.error("!!! ERROR: DATABASE_URL environment variable not set.      !!!");
-    console.error("!!! Please create a .env file or set it in your hosting. !!!");
-    console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    console.error("!!! ERROR: DATABASE_URL environment variable not set. !!!");
     process.exit(1);
 }
 
-// PostgreSQL connection configuration for Neon
-// Render and other hosts may require SSL, so we enable it.
 const pool = new Pool({
   connectionString: connectionString,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
 
 // --- Express App Setup ---
 const app = express();
-app.use(cors()); 
+
+// --- IMPORTANT: CORS Configuration Update ---
+// Define the specific URL of your live frontend application.
+const frontendURL = 'https://eventsphere-register.onrender.com';
+
+const corsOptions = {
+  origin: frontendURL,
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Use the new CORS options
+app.use(cors(corsOptions));
+ 
 app.use(express.json());
 
 
@@ -98,4 +99,5 @@ app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
+    
 
