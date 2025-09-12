@@ -1,103 +1,151 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Event Attendance & Registration — Admin</title>
+  <title>EventSphere — Register & Admin</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- QR & XLSX libs -->
+  <!-- QR libs -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+
+  <!-- XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #0b1220; }
-    #reader { border-radius: .5rem; overflow: hidden; width: 100%; max-width: 420px; height: 320px; }
+    #reader { border-radius: .5rem; overflow: hidden; width: 100%; max-width: 420px; height: 320px; background:#0a0f1a; }
     #reader video { width: 100% !important; height: auto !important; }
     .glowing-border { box-shadow: 0 0 5px rgba(59,130,246,.5), 0 0 10px rgba(59,130,246,.3); }
-    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
   </style>
 </head>
 <body class="text-gray-200">
   <div class="min-h-screen p-6 max-w-6xl mx-auto">
     <header class="mb-6 text-center">
-      <h1 class="text-3xl font-bold">EventSphere — Admin</h1>
-      <p class="text-gray-400 mt-1">Live Attendance & QR Scanner</p>
+      <h1 class="text-3xl font-bold">EventSphere</h1>
+      <p class="text-gray-400 mt-1">Registration & Live Admin Dashboard</p>
     </header>
 
-    <!-- Live stats -->
-    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-gray-800 p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-400">Total Registered</div>
-        <div id="stat-total" class="text-3xl font-bold text-white mt-2">0</div>
-      </div>
-      <div class="bg-gray-800 p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-400">Checked In</div>
-        <div id="stat-checked" class="text-3xl font-bold text-green-400 mt-2">0</div>
-      </div>
-      <div class="bg-gray-800 p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-400">Attendance Rate</div>
-        <div id="stat-rate" class="text-3xl font-bold text-blue-400 mt-2">0%</div>
-      </div>
-    </section>
+    <!-- Nav -->
+    <nav class="flex justify-center gap-4 mb-6">
+      <button id="tab-register" class="px-4 py-2 rounded bg-blue-600 text-white">Register</button>
+      <button id="tab-admin" class="px-4 py-2 rounded bg-gray-700 text-gray-200">Admin Dashboard</button>
+    </nav>
 
-    <main class="space-y-6">
-      <!-- Scanner card -->
-      <section class="bg-gray-800 p-6 rounded-lg shadow">
-        <div class="flex items-start justify-between">
-          <div>
-            <h2 class="text-xl font-semibold">QR Code Scanner</h2>
-            <p class="text-sm text-gray-400">Use the front camera to scan attendee QR codes and check them in.</p>
-          </div>
+    <main id="app" class="space-y-6">
+      <!-- Registration view -->
+      <section id="view-register" class="">
+        <div class="bg-gray-800 p-6 rounded-lg shadow max-w-xl mx-auto">
+          <h2 class="text-xl font-semibold text-white mb-4">Register for the Event</h2>
 
-          <div class="flex items-center gap-3">
-            <input id="admin-api-key" placeholder="Admin API Key (optional)" class="bg-gray-700 text-white px-3 py-2 rounded" />
-            <button id="btn-start" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white">Start Camera</button>
-            <button id="btn-stop" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white" disabled>Stop</button>
-          </div>
-        </div>
+          <form id="registration-form" class="space-y-4" autocomplete="off" novalidate>
+            <div>
+              <label for="name" class="block text-sm text-gray-300">Full Name</label>
+              <input id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white" />
+            </div>
+            <div>
+              <label for="email" class="block text-sm text-gray-300">Email</label>
+              <input id="email" name="email" type="email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white" />
+            </div>
 
-        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-gray-900 p-4 rounded glowing-border">
-            <div id="reader" class="mx-auto"></div>
-            <div id="scan-status" class="mt-2 text-sm text-gray-300">Scanner idle</div>
-            <div id="last-scanned" class="mt-1 text-sm text-green-300"></div>
-          </div>
+            <div id="reg-error" class="hidden text-red-400 text-sm bg-red-900/40 p-2 rounded"></div>
 
-          <div class="bg-gray-900 p-4 rounded">
-            <div class="text-sm text-gray-400">Scan Result</div>
-            <pre id="scan-output" class="bg-gray-800 rounded p-3 text-sm mt-2 break-words" style="min-height:120px;">No QR scanned yet.</pre>
-            <div class="mt-4 flex gap-2">
-              <button id="manual-refresh" class="px-3 py-1 bg-gray-700 rounded text-white">Refresh List</button>
-              <button id="export-btn" class="px-3 py-1 bg-blue-600 rounded text-white">Export to Excel</button>
+            <div class="flex gap-3">
+              <button id="register-btn" type="submit" class="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-700">Generate My QR Code</button>
+              <button id="clear-reg" type="button" class="py-2 px-4 rounded bg-gray-700 hover:bg-gray-600">Clear</button>
+            </div>
+          </form>
+
+          <!-- QR result -->
+          <div id="qrcode-area" class="hidden mt-6 text-center">
+            <h3 class="text-lg text-green-400 mb-2">Registration Successful</h3>
+            <div class="flex justify-center p-4 bg-white rounded-lg glowing-border w-48 h-48 mx-auto">
+              <div id="qrcode"></div>
+            </div>
+            <div class="mt-3 text-left bg-gray-700 p-3 rounded">
+              <p><strong class="text-white">Name:</strong> <span id="display-name"></span></p>
+              <p><strong class="text-white">Email:</strong> <span id="display-email"></span></p>
+              <p><strong class="text-white">ID:</strong> <span id="display-id" class="break-all"></span></p>
+            </div>
+
+            <div class="mt-4 flex justify-center gap-3">
+              <button id="download-qr" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Download QR</button>
+              <button id="reg-another" class="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-200">Register Another</button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Attendance list -->
-      <section class="bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4">Attendance List</h3>
-        <div id="error-msg" class="text-red-400 mb-4 hidden"></div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm text-left text-gray-300">
-            <thead class="bg-gray-700 text-gray-200">
-              <tr>
-                <th class="px-4 py-2">Name</th>
-                <th class="px-4 py-2">Email</th>
-                <th class="px-4 py-2">Status</th>
-                <th class="px-4 py-2">Check-in Time</th>
-                <th class="px-4 py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody id="participants-table" class="divide-y divide-gray-600">
-              <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No data loaded.</td></tr>
-            </tbody>
-          </table>
+      <!-- Admin view -->
+      <section id="view-admin" class="hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-semibold text-white">Admin Dashboard</h2>
+              <p class="text-sm text-gray-400">Scan QR to check-in attendees</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="admin-key" placeholder="Admin API Key (optional)" class="bg-gray-700 text-white px-3 py-2 rounded" />
+              <button id="btn-start" class="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white">Start Camera</button>
+              <button id="btn-stop" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white" disabled>Stop</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Scanner & scan output -->
+            <div class="bg-gray-900 p-4 rounded glowing-border">
+              <div id="reader" class="mx-auto"></div>
+              <div id="scan-status" class="mt-2 text-sm text-gray-300">Scanner idle</div>
+              <div id="last-scan" class="mt-1 text-sm text-green-300"></div>
+              <div class="mt-3">
+                <div class="text-sm text-gray-400">Last scanned value</div>
+                <pre id="scan-output" class="bg-gray-800 p-2 rounded text-sm mt-1 break-words">No scans yet.</pre>
+              </div>
+            </div>
+
+            <!-- Participants & actions -->
+            <div class="bg-gray-900 p-4 rounded">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-sm text-gray-400">Participants</div>
+                  <div class="text-2xl font-bold text-white" id="stat-total">0</div>
+                </div>
+                <div class="flex gap-2">
+                  <button id="refresh-btn" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white">Refresh</button>
+                  <button id="export-btn" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">Export XLSX</button>
+                </div>
+              </div>
+
+              <div id="admin-error" class="hidden text-red-400 mt-3"></div>
+
+              <div class="overflow-x-auto mt-4">
+                <table class="min-w-full text-sm text-left text-gray-300">
+                  <thead class="bg-gray-700 text-gray-200">
+                    <tr>
+                      <th class="px-3 py-2">Name</th>
+                      <th class="px-3 py-2">Email</th>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Check-in Time</th>
+                      <th class="px-3 py-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="participants-table" class="divide-y divide-gray-600">
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No data loaded.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
     </main>
@@ -105,38 +153,88 @@
 
 <script>
 (() => {
-  // CONFIG: change if needed
+  // --- CONFIG: update if your backend URL differs
   const API_BASE_URL = 'https://event-registration-system-azym.onrender.com';
 
   // UI refs
+  const tabRegister = document.getElementById('tab-register');
+  const tabAdmin = document.getElementById('tab-admin');
+  const viewRegister = document.getElementById('view-register');
+  const viewAdmin = document.getElementById('view-admin');
+
+  // Register refs
+  const regForm = document.getElementById('registration-form');
+  const regBtn = document.getElementById('register-btn');
+  const clearRegBtn = document.getElementById('clear-reg');
+  const regError = document.getElementById('reg-error');
+  const qrcodeArea = document.getElementById('qrcode-area');
+  const qrcodeEl = document.getElementById('qrcode');
+  const displayName = document.getElementById('display-name');
+  const displayEmail = document.getElementById('display-email');
+  const displayId = document.getElementById('display-id');
+  const downloadQrBtn = document.getElementById('download-qr');
+  const regAnother = document.getElementById('reg-another');
+
+  // Admin refs
+  const adminKeyInput = document.getElementById('admin-key');
   const btnStart = document.getElementById('btn-start');
   const btnStop = document.getElementById('btn-stop');
   const readerEl = document.getElementById('reader');
   const scanStatus = document.getElementById('scan-status');
   const scanOutput = document.getElementById('scan-output');
-  const lastScanned = document.getElementById('last-scanned');
-  const participantsTable = document.getElementById('participants-table');
-  const errorMsg = document.getElementById('error-msg');
-  const statTotal = document.getElementById('stat-total');
-  const statChecked = document.getElementById('stat-checked');
-  const statRate = document.getElementById('stat-rate');
-  const manualRefresh = document.getElementById('manual-refresh');
+  const lastScan = document.getElementById('last-scan');
+  const refreshBtn = document.getElementById('refresh-btn');
   const exportBtn = document.getElementById('export-btn');
-  const apiKeyInput = document.getElementById('admin-api-key');
+  const participantsTable = document.getElementById('participants-table');
+  const adminError = document.getElementById('admin-error');
+  const statTotal = document.getElementById('stat-total');
 
   // state
+  let participantsCache = [];
+  let currentQrCanvas = null;
   let html5QrCode = null;
   let scanning = false;
-  let participantsCache = [];
   let lastScanTime = 0;
 
-  // persist admin key in sessionStorage for convenience
-  apiKeyInput.value = sessionStorage.getItem('es_admin_key') || '';
-  apiKeyInput.addEventListener('change', () => {
-    sessionStorage.setItem('es_admin_key', apiKeyInput.value.trim());
+  // persist admin key
+  adminKeyInput.value = sessionStorage.getItem('es_admin_key') || '';
+  adminKeyInput.addEventListener('change', () => {
+    sessionStorage.setItem('es_admin_key', adminKeyInput.value.trim());
   });
 
-  // helper: get header with optional API key (x-api-key)
+  // Tab switching
+  function showRegister() {
+    viewRegister.classList.remove('hidden');
+    viewAdmin.classList.add('hidden');
+    tabRegister.classList.replace('bg-gray-700','bg-blue-600');
+    tabRegister.classList.add('bg-blue-600'); tabRegister.classList.remove('bg-gray-700');
+    tabAdmin.classList.remove('bg-blue-600'); tabAdmin.classList.add('bg-gray-700');
+  }
+  function showAdmin() {
+    viewAdmin.classList.remove('hidden');
+    viewRegister.classList.add('hidden');
+    tabAdmin.classList.remove('bg-gray-700'); tabAdmin.classList.add('bg-blue-600');
+    tabRegister.classList.remove('bg-blue-600'); tabRegister.classList.add('bg-gray-700');
+    // load participants when admin view opens
+    fetchParticipants();
+  }
+  tabRegister.addEventListener('click', showRegister);
+  tabAdmin.addEventListener('click', showAdmin);
+
+  // helpers
+  function setBusy(el, busy=true, text='') {
+    if (!el) return;
+    if (busy) { el.disabled = true; if (text) el.__orig = el.textContent, el.textContent = text; }
+    else { el.disabled = false; if (el.__orig) { el.textContent = el.__orig; el.__orig = null; } }
+  }
+  function safeParseJson(respText) {
+    try { return JSON.parse(respText); } catch { return null; }
+  }
+  async function safeParseResponse(resp) {
+    const txt = await resp.text();
+    const parsed = safeParseJson(txt);
+    return parsed || { _rawText: txt };
+  }
   function getAuthHeaders() {
     const headers = { 'Content-Type': 'application/json' };
     const key = sessionStorage.getItem('es_admin_key') || '';
@@ -144,33 +242,95 @@
     return headers;
   }
 
-  // Start scanner
+  // --- Registration logic ---
+  regForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    regError.classList.add('hidden');
+    setBusy(regBtn, true, 'Generating...');
+    const name = regForm.name.value.trim();
+    const email = regForm.email.value.trim();
+    if (!name || !email) {
+      regError.textContent = 'Name and email are required';
+      regError.classList.remove('hidden');
+      setBusy(regBtn, false);
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email })
+      });
+      const data = await safeParseResponse(resp);
+      if (!resp.ok) throw new Error(data && data.error ? data.error : (data._rawText || 'Registration failed'));
+
+      // render QR
+      qrcodeEl.innerHTML = '';
+      new QRCode(qrcodeEl, { text: data.registration_id, width: 160, height: 160 });
+      currentQrCanvas = qrcodeEl.querySelector('img') || qrcodeEl.querySelector('canvas');
+
+      displayName.textContent = data.name || name;
+      displayEmail.textContent = data.email || email;
+      displayId.textContent = data.registration_id;
+
+      qrcodeArea.classList.remove('hidden');
+
+      // optionally refresh participants (if admin working on same device)
+      // fetchParticipants();
+    } catch (err) {
+      regError.textContent = err.message || String(err);
+      regError.classList.remove('hidden');
+    } finally {
+      setBusy(regBtn, false);
+    }
+  });
+
+  clearRegBtn.addEventListener('click', () => {
+    regForm.reset();
+    qrcodeArea.classList.add('hidden');
+    regError.classList.add('hidden');
+  });
+
+  downloadQrBtn.addEventListener('click', () => {
+    if (!currentQrCanvas) return alert('No QR to download.');
+    if (currentQrCanvas.tagName === 'IMG') {
+      const url = currentQrCanvas.src;
+      const a = document.createElement('a'); a.href = url; a.download = 'qrcode.png'; document.body.appendChild(a); a.click(); a.remove();
+    } else if (currentQrCanvas.tagName === 'CANVAS') {
+      const url = currentQrCanvas.toDataURL('image/png');
+      const a = document.createElement('a'); a.href = url; a.download = 'qrcode.png'; document.body.appendChild(a); a.click(); a.remove();
+    } else {
+      alert('Unable to download QR.');
+    }
+  });
+
+  regAnother.addEventListener('click', () => {
+    qrcodeArea.classList.add('hidden');
+    regForm.reset();
+  });
+
+  // --- Admin: Scanner start/stop ---
   btnStart.addEventListener('click', async () => {
     if (scanning) return;
     scanStatus.textContent = 'Requesting camera permission...';
-    btnStart.disabled = true;
-
+    setBusy(btnStart, true);
     try {
-      if (!Html5Qrcode) throw new Error('html5-qrcode library not loaded');
+      if (!Html5Qrcode) throw new Error('html5-qrcode library missing');
+      html5QrCode = new Html5Qrcode("reader", /* verbose= */ false);
+      const config = { fps: 10, qrbox: { width: 300, height: 300 } };
 
-      html5QrCode = new Html5Qrcode(/* element id */ "reader");
-
-      const config = { fps: 10, qrbox: { width: 300, height: 300 }, experimentalFeatures: { useBarCodeDetectorIfSupported: false } };
-
-      // start with front camera
       await html5QrCode.start(
-        { facingMode: "user" }, 
+        { facingMode: "user" },
         config,
         (decodedText, decodedResult) => {
           const now = Date.now();
-          // simple debounce to avoid multiple rapid triggers
-          if (now - lastScanTime < 1200) return;
+          if (now - lastScanTime < 1200) return; // debounce
           lastScanTime = now;
-          onScanSuccess(decodedText);
+          onScan(decodedText);
         },
-        (errorMessage) => {
-          // scanning in progress; could show or ignore
-          // console.debug('scan error', errorMessage);
+        (err) => {
+          // ignore continuous scan errors
         }
       );
 
@@ -178,60 +338,49 @@
       scanStatus.textContent = 'Scanning... (front camera)';
       btnStop.disabled = false;
     } catch (err) {
-      console.error('Scanner start failed', err);
+      console.error('Scanner start error', err);
       scanStatus.textContent = 'Failed to start camera: ' + (err.message || err);
-      btnStart.disabled = false;
+      setBusy(btnStart, false);
     }
   });
 
-  // Stop scanner
   btnStop.addEventListener('click', async () => {
     if (!scanning || !html5QrCode) return;
     try {
       await html5QrCode.stop();
       await html5QrCode.clear();
-    } catch (err) {
-      console.warn('Error stopping scanner', err);
-    } finally {
-      scanning = false;
-      html5QrCode = null;
-      scanStatus.textContent = 'Scanner stopped';
-      btnStart.disabled = false;
-      btnStop.disabled = true;
-    }
+    } catch (e) { /* ignore */ }
+    scanning = false;
+    html5QrCode = null;
+    scanStatus.textContent = 'Scanner stopped';
+    btnStop.disabled = true;
+    setBusy(btnStart, false);
   });
 
-  // Called when a QR is decoded
-  async function onScanSuccess(decodedText) {
+  // When QR decoded
+  async function onScan(decodedText) {
     scanOutput.textContent = decodedText;
-    lastScanned.textContent = `Last scanned at ${new Date().toLocaleTimeString()}`;
-    // Attempt to call checkin endpoint (use API key if provided)
+    lastScan.textContent = `Scanned at ${new Date().toLocaleTimeString()}`;
+    // attempt check-in
     try {
       const headers = getAuthHeaders();
-      const resp = await fetch(`${API_BASE_URL}/checkin/${encodeURIComponent(decodedText)}`, {
-        method: 'POST',
-        headers
-      });
-
-      // parse JSON safely
-      const data = await safeParseJson(resp);
+      const resp = await fetch(`${API_BASE_URL}/checkin/${encodeURIComponent(decodedText)}`, { method: 'POST', headers });
+      const data = await safeParseResponse(resp);
       if (!resp.ok) {
         const msg = data && data.error ? data.error : (data._rawText || 'Check-in failed');
-        showTransientMessage(`❌ ${msg}`, true);
+        showScanMsg(`❌ ${msg}`, true);
       } else {
-        showTransientMessage(`✅ ${data.message || 'Checked in'}`, false);
-        // refresh participants list
-        await fetchParticipants();
+        showScanMsg(`✅ ${data.message || 'Checked in'}`, false);
+        await fetchParticipants(); // refresh list
       }
     } catch (err) {
-      console.error('Check-in error', err);
-      showTransientMessage('❌ Check-in request failed (network or server).', true);
+      console.error('Check-in network error', err);
+      showScanMsg('❌ Check-in request failed (network/server)', true);
     }
   }
 
-  // small transient notification in scan status
-  function showTransientMessage(msg, isError = false) {
-    scanStatus.textContent = msg;
+  function showScanMsg(text, isError=false) {
+    scanStatus.textContent = text;
     scanStatus.style.color = isError ? '#f87171' : '#86efac';
     setTimeout(() => {
       scanStatus.textContent = scanning ? 'Scanning... (front camera)' : 'Scanner idle';
@@ -239,36 +388,25 @@
     }, 3000);
   }
 
-  // safe JSON parsing fallback
-  async function safeParseJson(response) {
-    const text = await response.text();
-    try { return JSON.parse(text); }
-    catch { return { _rawText: text }; }
-  }
-
-  // fetch participants and render table/stats
+  // --- Participants fetch/render ---
   async function fetchParticipants() {
-    errorMsg.classList.add('hidden');
+    adminError.classList.add('hidden');
     participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading...</td></tr>`;
     try {
       const resp = await fetch(`${API_BASE_URL}/participants`, { headers: getAuthHeaders() });
-      const data = await safeParseJson(resp);
+      const data = await safeParseResponse(resp);
       if (!resp.ok) {
         const msg = data && data.error ? data.error : (data._rawText || 'Failed to fetch participants');
         throw new Error(msg);
       }
-
       participantsCache = Array.isArray(data) ? data : [];
       renderParticipants(participantsCache);
-      updateStats(participantsCache);
     } catch (err) {
       console.error('Fetch participants error', err);
-      participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-400">Error: Could not load data. Is the backend server running?</td></tr>`;
-      errorMsg.textContent = String(err.message || err);
-      errorMsg.classList.remove('hidden');
+      participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-400">Error: Could not load data. Is the backend running?</td></tr>`;
+      adminError.textContent = err.message || String(err);
+      adminError.classList.remove('hidden');
       statTotal.textContent = '—';
-      statChecked.textContent = '—';
-      statRate.textContent = '—';
     }
   }
 
@@ -276,44 +414,26 @@
     participantsTable.innerHTML = '';
     if (!list || list.length === 0) {
       participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No participants yet.</td></tr>`;
+      statTotal.textContent = '0';
       return;
     }
+
+    statTotal.textContent = list.length;
 
     list.forEach(p => {
       const tr = document.createElement('tr');
 
-      const tdName = document.createElement('td');
-      tdName.className = 'px-4 py-2';
-      tdName.textContent = p.name || '-';
-      tr.appendChild(tdName);
+      const tdName = document.createElement('td'); tdName.className = 'px-3 py-2'; tdName.textContent = p.name || '-'; tr.appendChild(tdName);
+      const tdEmail = document.createElement('td'); tdEmail.className = 'px-3 py-2'; tdEmail.textContent = p.email || '-'; tr.appendChild(tdEmail);
+      const tdStatus = document.createElement('td'); tdStatus.className = 'px-3 py-2'; tdStatus.textContent = p.attended ? '✅ Checked In' : '❌ Not Checked'; tr.appendChild(tdStatus);
+      const tdTime = document.createElement('td'); tdTime.className = 'px-3 py-2'; tdTime.textContent = p.timestamp ? new Date(p.timestamp).toLocaleString() : '-'; tr.appendChild(tdTime);
 
-      const tdEmail = document.createElement('td');
-      tdEmail.className = 'px-4 py-2';
-      tdEmail.textContent = p.email || '-';
-      tr.appendChild(tdEmail);
-
-      const tdStatus = document.createElement('td');
-      tdStatus.className = 'px-4 py-2';
-      tdStatus.textContent = p.attended ? '✅ Checked In' : '❌ Not Checked';
-      tr.appendChild(tdStatus);
-
-      const tdTime = document.createElement('td');
-      tdTime.className = 'px-4 py-2';
-      tdTime.textContent = p.timestamp ? new Date(p.timestamp).toLocaleString() : '-';
-      tr.appendChild(tdTime);
-
-      const tdAction = document.createElement('td');
-      tdAction.className = 'px-4 py-2';
+      const tdAction = document.createElement('td'); tdAction.className = 'px-3 py-2';
       if (p.attended) {
-        const span = document.createElement('span');
-        span.className = 'text-green-400';
-        span.textContent = 'Checked';
-        tdAction.appendChild(span);
+        const span = document.createElement('span'); span.className = 'text-green-400'; span.textContent = 'Checked'; tdAction.appendChild(span);
       } else {
-        const btn = document.createElement('button');
-        btn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded';
-        btn.textContent = 'Check In';
-        btn.addEventListener('click', () => manualCheckIn(p.registration_id));
+        const btn = document.createElement('button'); btn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded'; btn.textContent = 'Check In';
+        btn.addEventListener('click', () => manualCheckIn(p.registration_id, btn));
         tdAction.appendChild(btn);
       }
       tr.appendChild(tdAction);
@@ -322,11 +442,11 @@
     });
   }
 
-  // manual check-in button click
-  async function manualCheckIn(regId) {
+  async function manualCheckIn(regId, btn) {
+    setBusy(btn, true, 'Checking...');
     try {
       const resp = await fetch(`${API_BASE_URL}/checkin/${encodeURIComponent(regId)}`, { method: 'POST', headers: getAuthHeaders() });
-      const data = await safeParseJson(resp);
+      const data = await safeParseResponse(resp);
       if (!resp.ok) {
         alert(data && data.error ? data.error : (data._rawText || 'Check-in failed'));
       } else {
@@ -336,19 +456,12 @@
     } catch (err) {
       console.error(err);
       alert('Check-in request failed');
+    } finally {
+      setBusy(btn, false);
     }
   }
 
-  function updateStats(list) {
-    const total = list.length;
-    const checked = list.filter(x => x.attended).length;
-    const rate = total === 0 ? 0 : Math.round((checked / total) * 100);
-    statTotal.textContent = total;
-    statChecked.textContent = checked;
-    statRate.textContent = `${rate}%`;
-  }
-
-  // Export XLSX
+  // Export to XLSX
   exportBtn.addEventListener('click', () => {
     if (!participantsCache || participantsCache.length === 0) return alert('No participants to export.');
     const sheetData = participantsCache.map(p => ({
@@ -359,23 +472,22 @@
       Timestamp: p.timestamp ? new Date(p.timestamp).toLocaleString() : ''
     }));
     const ws = XLSX.utils.json_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Participants');
-    XLSX.writeFile(wb, 'participants.xlsx');
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Participants'); XLSX.writeFile(wb, 'participants.xlsx');
   });
 
-  // manual refresh
-  manualRefresh.addEventListener('click', fetchParticipants);
+  // Refresh
+  refreshBtn.addEventListener('click', fetchParticipants);
 
-  // initial load
-  fetchParticipants();
+  // initial view
+  showRegister();
 
-  // clean up on tab close
+  // cleanup on exit
   window.addEventListener('beforeunload', async () => {
     if (scanning && html5QrCode) {
       try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (e) {}
     }
   });
+
 })();
 </script>
 </body>
