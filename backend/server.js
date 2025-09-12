@@ -23,12 +23,23 @@ const pool = new Pool({
 const app = express();
 
 // --- CORS Configuration ---
-const frontendURL = 'https://eventsphere-register.onrender.com';
-const corsOptions = {
-  origin: frontendURL,
+// Allow everything in development, restrict in production
+const allowedOrigins = [
+  "https://eventsphere-register.onrender.com", // deployed frontend
+  "http://localhost:5500",                     // local testing
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true); // allow request
+    } else {
+      callback(new Error("CORS blocked: " + origin));
+    }
+  },
   optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
+}));
+
 app.use(express.json());
 
 // --- API Endpoints ---
