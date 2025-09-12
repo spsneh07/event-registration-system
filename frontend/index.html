@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Attendance & Registration</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- JS Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        #reader { border-radius: 0.5rem; overflow: hidden; }
+        #reader video { width: 100% !important; height: auto !important; }
+        .glowing-border { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <div id="app-container" class="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+        <div class="max-w-4xl mx-auto">
+            
+            <header class="text-center mb-8">
+                <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">EventSphere</h1>
+                <p class="text-gray-400 mt-2">Your Modern Event Registration & Attendance System</p>
+            </header>
+            
+            <nav class="flex justify-center border-b border-gray-700 mb-8">
+                <button id="nav-register" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-blue-500 text-blue-400">Register</button>
+                <button id="nav-admin" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-transparent text-gray-400 hover:border-gray-500 hover:text-gray-300">Admin Dashboard</button>
+            </nav>
+
+            <main id="main-content">
+                
+                <!-- Registration View -->
+                <div id="registration-view">
+                    <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-6 text-white text-center">Join The Event</h2>
+                        <form id="registration-form" class="space-y-6">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                                <input type="text" id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-300">Email Address</label>
+                                <input type="email" id="email" name="email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <button type="submit" id="register-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800 transition-transform transform hover:scale-105">
+                                Generate My QR Code
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- QR Code Display View -->
+                <div id="qrcode-view" class="hidden">
+                    <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center">
+                        <h2 class="text-2xl font-semibold mb-4 text-green-400">Registration Successful!</h2>
+                        <p class="text-gray-400 mb-6">Scan this QR code at the event entrance.</p>
+                        <div id="qrcode-container" class="flex justify-center p-4 bg-white rounded-lg glowing-border w-48 h-48 mx-auto">
+                            <div id="qrcode"></div>
+                        </div>
+                        <div id="registration-details" class="mt-6 text-left bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300"><strong class="font-medium text-white">Name:</strong> <span id="display-name"></span></p>
+                            <p class="text-gray-300"><strong class="font-medium text-white">Email:</strong> <span id="display-email"></span></p>
+                            <p class="text-gray-300"><strong class="font-medium text-white">ID:</strong> <span id="display-id" class="break-all"></span></p>
+                        </div>
+                        <button id="register-another-btn" class="mt-8 w-full sm:w-auto inline-flex justify-center py-2 px-6 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600">Register Another Person</button>
+                    </div>
+                </div>
+                
+                <!-- Admin View -->
+                <div id="admin-view" class="hidden">
+                    <div class="space-y-8">
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <h3 class="text-xl font-semibold text-white mb-4">Live Attendance</h3>
+                            <div class="flex flex-col sm:flex-row gap-4 text-center">
+                                <div class="flex-1 bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">Total Registered</p><p id="total-registered" class="text-3xl font-bold text-white">0</p></div>
+                                <div class="flex-1 bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">Checked In</p><p id="total-checkedin" class="text-3xl font-bold text-green-400">0</p></div>
+                                <div class="flex-1 bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">Attendance Rate</p><p id="attendance-rate" class="text-3xl font-bold text-blue-400">0%</p></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                <h3 class="text-xl font-semibold text-white">QR Code Scanner</h3>
+                                <button id="scan-btn" class="mt-2 sm:mt-0 w-full sm:w-auto flex items-center justify-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">Start Camera</button>
+                            </div>
+                            <div id="scanner-container" class="hidden">
+                                <div id="reader" class="w-full max-w-sm mx-auto"></div>
+                                <div id="scan-result" class="mt-4 text-center p-3 rounded-lg"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                <h3 class="text-xl font-semibold text-white">Attendance List</h3>
+                                <button id="export-btn" class="mt-2 sm:mt-0 w-full sm:w-auto flex items-center justify-center gap-2 py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600">Export to Excel</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-700">
+                                    <thead class="bg-gray-700">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Check-in Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendance-table" class="bg-gray-800 divide-y divide-gray-700">
+                                        <tr><td colspan="3" class="px-6 py-4 text-center text-gray-400">Loading data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        // --- DOM Elements ---
+        const registrationView = document.getElementById('registration-view');
+        const qrcodeView = document.getElementById('qrcode-view');
+        const adminView = document.getElementById('admin-view');
+        const navRegister = document.getElementById('nav-register');
+        const navAdmin = document.getElementById('nav-admin');
+        const registrationForm = document.getElementById('registration-form');
+        const registerBtn = document.getElementById('register-btn');
+        const scanBtn = document.getElementById('scan-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const registerAnotherBtn = document.getElementById('register-another-btn');
+        
+        let allParticipants = [];
+        let html5QrCode = null;
+        let attendanceInterval = null;
+
+        // --- App Logic ---
+        
+        function switchView(view) {
+            registrationView.classList.add('hidden');
+            qrcodeView.classList.add('hidden');
+            adminView.classList.add('hidden');
+            
+            navRegister.classList.remove('border-blue-500', 'text-blue-400');
+            navAdmin.classList.remove('border-blue-500', 'text-blue-400');
+            navRegister.classList.add('border-transparent', 'text-gray-400');
+            navAdmin.classList.add('border-transparent', 'text-gray-400');
+
+            if (attendanceInterval) {
+                clearInterval(attendanceInterval);
+                attendanceInterval = null;
+            }
+
+            if (view === 'register') {
+                registrationView.classList.remove('hidden');
+                navRegister.classList.add('border-blue-500', 'text-blue-400');
+                navRegister.classList.remove('border-transparent', 'text-gray-400');
+            } else if (view === 'admin') {
+                adminView.classList.remove('hidden');
+                navAdmin.classList.add('border-blue-500', 'text-blue-400');
+                navAdmin.classList.remove('border-transparent', 'text-gray-400');
+                fetchAttendanceData();
+                attendanceInterval = setInterval(fetchAttendanceData, 3000); // Poll every 3 seconds
+            } else if (view === 'qrcode') {
+                qrcodeView.classList.remove('hidden');
+            }
+        }
+
+        async function handleRegistration(e) {
+            e.preventDefault();
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Generating...';
+
+            const name = e.target.name.value;
+            const email = e.target.email.value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email }),
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || 'Registration failed');
+                }
+
+                const data = await response.json();
+                
+                document.getElementById('qrcode').innerHTML = "";
+                new QRCode(document.getElementById("qrcode"), { text: data.registration_id, width: 160, height: 160 });
+                document.getElementById('display-name').textContent = data.name;
+                document.getElementById('display-email').textContent = data.email;
+                document.getElementById('display-id').textContent = data.registration_id;
+
+                switchView('qrcode');
+
+            } catch (error) {
+                console.error("Registration Error:", error);
+                alert(`Registration failed: ${error.message}`);
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Generate My QR Code';
+                registrationForm.reset();
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            verifyParticipant(decodedText);
+            if(html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-container').classList.add('hidden');
+                    scanBtn.textContent = 'Start Camera';
+                    scanBtn.disabled = false;
+                }).catch(err => console.error("Error stopping scanner:", err));
+            }
+        }
+
+        function onScanFailure(error) { /* Keep scanning */ }
+        
+        async function verifyParticipant(registrationId) {
+            const scanResultEl = document.getElementById('scan-result');
+            scanResultEl.textContent = 'Verifying...';
+            scanResultEl.className = 'mt-4 text-center p-3 rounded-lg bg-yellow-900 text-yellow-300';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/checkin/${registrationId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                   throw new Error(data.error);
+                }
+                
+                scanResultEl.textContent = data.message;
+                scanResultEl.className = 'mt-4 text-center p-3 rounded-lg bg-green-900 text-green-300';
+                fetchAttendanceData(); // Refresh list immediately after scan
+            } catch (e) {
+                console.error("Check-in failed: ", e);
+                scanResultEl.textContent = `Error: ${e.message}`;
+                scanResultEl.className = 'mt-4 text-center p-3 rounded-lg bg-red-900 text-red-300';
+            }
+        }
+
+        async function fetchAttendanceData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/participants`);
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                const participants = await response.json();
+                allParticipants = participants; // Update for export
+                
+                const tableBody = document.getElementById('attendance-table');
+                tableBody.innerHTML = '';
+                let checkedInCount = 0;
+
+                if (participants.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-400">No registrations yet.</td></tr>';
+                    updateStats(0, 0);
+                    return;
+                }
+
+                participants.forEach((participant) => {
+                    const row = tableBody.insertRow();
+                    row.className = participant.attended ? 'bg-green-900/20' : '';
+                    
+                    row.insertCell(0).textContent = participant.name;
+                    row.cells[0].className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-white';
+                    
+                    const statusCell = row.insertCell(1);
+                    statusCell.className = 'px-6 py-4 whitespace-nowrap text-sm';
+                    if (participant.attended) {
+                        statusCell.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-200 text-green-800">Checked In</span>`;
+                        checkedInCount++;
+                    } else {
+                        statusCell.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-600 text-gray-200">Registered</span>`;
+                    }
+                    
+                    const timeCell = row.insertCell(2);
+                    timeCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-400';
+                    timeCell.textContent = participant.timestamp ? new Date(participant.timestamp).toLocaleString() : 'N/A';
+                });
+                
+                updateStats(participants.length, checkedInCount);
+            } catch (error) {
+                console.error("Fetch data error:", error);
+                const tableBody = document.getElementById('attendance-table');
+                tableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-center text-red-400">Error: Could not load data. Is the backend server running?</td></tr>`;
+            }
+        }
+        
+        function updateStats(total, checkedIn) {
+            document.getElementById('total-registered').textContent = total;
+            document.getElementById('total-checkedin').textContent = checkedIn;
+            const rate = total > 0 ? ((checkedIn / total) * 100).toFixed(1) : 0;
+            document.getElementById('attendance-rate').textContent = `${rate}%`;
+        }
+
+        function handleExport() {
+            if (allParticipants.length === 0) return alert("No data to export.");
+            
+            const dataToExport = allParticipants.map(p => ({
+                Name: p.name,
+                Email: p.email,
+                'Registration ID': p.registration_id,
+                Status: p.attended ? 'Checked In' : 'Registered',
+                Timestamp: p.timestamp ? new Date(p.timestamp).toLocaleString() : 'N/A'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.writeFile(wb, "EventAttendance.xlsx");
+        }
+        
+        // --- Event Listeners ---
+        navRegister.addEventListener('click', () => switchView('register'));
+        navAdmin.addEventListener('click', () => switchView('admin'));
+        registrationForm.addEventListener('submit', handleRegistration);
+        registerAnotherBtn.addEventListener('click', () => switchView('register'));
+        exportBtn.addEventListener('click', handleExport);
+        
+        scanBtn.addEventListener('click', () => {
+            const scannerContainer = document.getElementById('scanner-container');
+            scanBtn.disabled = true;
+
+            if (scannerContainer.classList.contains('hidden')) {
+                scannerContainer.classList.remove('hidden');
+                document.getElementById('scan-result').innerHTML = '';
+                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, onScanFailure)
+                    .then(() => { scanBtn.textContent = 'Stop Camera'; scanBtn.disabled = false; })
+                    .catch(err => {
+                        alert("Unable to start scanner. Please grant camera permissions.");
+                        console.error("Scanner start error", err);
+                        scannerContainer.classList.add('hidden');
+                        scanBtn.disabled = false;
+                    });
+            } else {
+                 if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop()
+                        .then(() => {
+                            scannerContainer.classList.add('hidden');
+                            scanBtn.textContent = 'Start Camera';
+                            scanBtn.disabled = false;
+                        }).catch(err => { console.error("Error stopping scanner:", err); scanBtn.disabled = false; });
+                }
+            }
+        });
+
+        // --- App Initialization ---
+        switchView('register');
+    </script>
+</body>
+</html>
+
