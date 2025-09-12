@@ -1,0 +1,8 @@
+Ignore the node_modules folder from the backend
+backend/node_modules
+
+Ignore the secret environment variables file
+backend/.env
+
+Ignore system files
+.DS_Store
