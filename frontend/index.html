@@ -1,180 +1,417 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Attendance & Registration</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- JS Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
-        }
-        #reader { border-radius: 0.5rem; overflow: hidden; }
-        #reader video { width: 100% !important; height: auto !important; }
-        .glowing-border { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Event Attendance & Registration — EventSphere</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- QR code generator (kept minimal) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <!-- XLSX for export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #0b1220; }
+    #reader { border-radius: .5rem; overflow: hidden; }
+    #reader video { width: 100% !important; height: auto !important; }
+    .glowing-border { box-shadow: 0 0 5px rgba(59,130,246,.5), 0 0 10px rgba(59,130,246,.3); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
 </head>
 <body class="text-gray-200">
+  <div id="app-container" class="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+    <div class="max-w-4xl mx-auto">
 
-    <div id="app-container" class="min-h-screen w-full p-4 sm:p-6 lg:p-8">
-        <div class="max-w-4xl mx-auto">
-            
-            <header class="text-center mb-8">
-                <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">EventSphere</h1>
-                <p class="text-gray-400 mt-2">Your Modern Event Registration & Attendance System</p>
-            </header>
-            
-            <nav class="flex justify-center border-b border-gray-700 mb-8">
-                <button id="nav-register" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-blue-500 text-blue-400">Register</button>
-                <button id="nav-admin" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-transparent text-gray-400 hover:border-gray-500 hover:text-gray-300">Admin Dashboard</button>
-            </nav>
+      <!-- Header -->
+      <header class="text-center mb-8">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">EventSphere</h1>
+        <p class="text-gray-400 mt-2">Modern Event Registration & Attendance</p>
+      </header>
 
-            <main id="main-content">
-                
-                <!-- Registration View -->
-                <div id="registration-view">
-                    <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-6 text-white text-center">Join The Event</h2>
-                        <form id="registration-form" class="space-y-6">
-                            <div>
-                                <label for="name" class="block text-sm font-medium text-gray-300">Full Name</label>
-                                <input type="text" id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label for="email" class="block text-sm font-medium text-gray-300">Email Address</label>
-                                <input type="email" id="email" name="email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            </div>
+      <!-- Nav -->
+      <nav class="flex justify-center border-b border-gray-700 mb-8" role="navigation" aria-label="Main">
+        <button id="nav-register" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-blue-500 text-blue-400">Register</button>
+        <button id="nav-admin" class="px-4 py-2 text-sm sm:text-base font-medium border-b-2 border-transparent text-gray-400 hover:border-gray-500 hover:text-gray-300">Admin Dashboard</button>
+      </nav>
 
-                            <!-- Error Box -->
-                            <div id="error-box" class="hidden bg-red-900/60 text-red-300 border border-red-500 rounded-lg px-3 py-2 text-sm font-medium"></div>
+      <main id="main-content">
+        <!-- Registration -->
+        <section id="registration-view" aria-labelledby="reg-title">
+          <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg">
+            <h2 id="reg-title" class="text-2xl font-semibold mb-6 text-white text-center">Join The Event</h2>
+            <form id="registration-form" class="space-y-6" autocomplete="off" novalidate>
+              <div>
+                <label for="name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                <input type="text" id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white" />
+              </div>
+              <div>
+                <label for="email" class="block text-sm font-medium text-gray-300">Email Address</label>
+                <input type="email" id="email" name="email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white" />
+              </div>
+              <div id="error-box" class="hidden bg-red-900/60 text-red-300 border border-red-500 rounded-lg px-3 py-2 text-sm font-medium" role="alert"></div>
+              <button type="submit" id="register-btn" class="w-full py-3 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Generate My QR Code</button>
+            </form>
+          </div>
+        </section>
 
-                            <button type="submit" id="register-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800 transition-transform transform hover:scale-105">
-                                Generate My QR Code
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- QR Code Display View -->
-                <div id="qrcode-view" class="hidden">
-                    <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center">
-                        <h2 class="text-2xl font-semibold mb-4 text-green-400">Registration Successful!</h2>
-                        <p class="text-gray-400 mb-6">Scan this QR code at the event entrance.</p>
-                        <div id="qrcode-container" class="flex justify-center p-4 bg-white rounded-lg glowing-border w-48 h-48 mx-auto">
-                            <div id="qrcode"></div>
-                        </div>
-                        <div id="registration-details" class="mt-6 text-left bg-gray-700 p-4 rounded-lg">
-                            <p class="text-gray-300"><strong class="font-medium text-white">Name:</strong> <span id="display-name"></span></p>
-                            <p class="text-gray-300"><strong class="font-medium text-white">Email:</strong> <span id="display-email"></span></p>
-                            <p class="text-gray-300"><strong class="font-medium text-white">ID:</strong> <span id="display-id" class="break-all"></span></p>
-                        </div>
-                        <button id="register-another-btn" class="mt-8 w-full sm:w-auto inline-flex justify-center py-2 px-6 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600">Register Another Person</button>
-                    </div>
-                </div>
-                
-                <!-- Admin View -->
-                <div id="admin-view" class="hidden">
-                    <!-- (unchanged, your admin dashboard code here) -->
-                </div>
-            </main>
-        </div>
+        <!-- QR Code View -->
+        <section id="qrcode-view" class="hidden" aria-live="polite">
+          <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center">
+            <h2 class="text-2xl font-semibold mb-4 text-green-400">Registration Successful!</h2>
+            <p class="text-gray-400 mb-6">Scan this QR code at the event entrance.</p>
+            <div id="qrcode-container" class="flex justify-center p-4 bg-white rounded-lg glowing-border w-48 h-48 mx-auto">
+              <div id="qrcode" aria-hidden="true"></div>
+            </div>
+            <div id="registration-details" class="mt-6 text-left bg-gray-700 p-4 rounded-lg">
+              <p><strong class="text-white">Name:</strong> <span id="display-name"></span></p>
+              <p><strong class="text-white">Email:</strong> <span id="display-email"></span></p>
+              <p><strong class="text-white">ID:</strong> <span id="display-id" class="break-all"></span></p>
+            </div>
+            <div class="flex justify-center gap-3 mt-6">
+              <button id="register-another-btn" class="py-2 px-6 rounded-md text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600">Register Another Person</button>
+              <button id="download-qr-btn" class="py-2 px-6 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Download QR</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin -->
+        <section id="admin-view" class="hidden" aria-labelledby="admin-title">
+          <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg">
+            <h2 id="admin-title" class="text-2xl font-semibold mb-6 text-white text-center">Admin Dashboard</h2>
+
+            <div class="flex justify-between items-center mb-4">
+              <div class="text-sm text-gray-400">Participants</div>
+              <div class="flex gap-2">
+                <button id="refresh-btn" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-200">Refresh</button>
+                <button id="export-btn" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">Export XLSX</button>
+                <!-- Optional: scan to check-in button if you enable html5-qrcode -->
+                <!-- <button id="scan-btn" class="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white">Scan to Check In</button> -->
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm text-left text-gray-300">
+                <thead class="bg-gray-700 text-gray-200">
+                  <tr>
+                    <th class="px-4 py-2">Name</th>
+                    <th class="px-4 py-2">Email</th>
+                    <th class="px-4 py-2">Checked In</th>
+                    <th class="px-4 py-2">Time</th>
+                    <th class="px-4 py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="participants-table" class="divide-y divide-gray-600">
+                  <tr><td colspan="5" class="px-4 py-4 text-center text-gray-400">No data loaded.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
     </div>
-    
-    <script>
-        const API_BASE_URL = 'https://event-registration-system-azym.onrender.com';
+  </div>
 
-        const registrationView = document.getElementById('registration-view');
-        const qrcodeView = document.getElementById('qrcode-view');
-        const adminView = document.getElementById('admin-view');
-        const navRegister = document.getElementById('nav-register');
-        const navAdmin = document.getElementById('nav-admin');
-        const registrationForm = document.getElementById('registration-form');
-        const registerBtn = document.getElementById('register-btn');
-        const registerAnotherBtn = document.getElementById('register-another-btn');
-        const errorBox = document.getElementById('error-box');
+  <script>
+  (function () {
+    // CONFIG
+    const API_BASE_URL = 'https://event-registration-system-azym.onrender.com'; // ensure HTTPS & proper CORS in prod
 
-        function switchView(view) {
-            registrationView.classList.add('hidden');
-            qrcodeView.classList.add('hidden');
-            adminView.classList.add('hidden');
-            navRegister.classList.remove('border-blue-500', 'text-blue-400');
-            navAdmin.classList.remove('border-blue-500', 'text-blue-400');
-            navRegister.classList.add('border-transparent', 'text-gray-400');
-            navAdmin.classList.add('border-transparent', 'text-gray-400');
+    // UI refs
+    const registrationView = document.getElementById('registration-view');
+    const qrcodeView = document.getElementById('qrcode-view');
+    const adminView = document.getElementById('admin-view');
+    const navRegister = document.getElementById('nav-register');
+    const navAdmin = document.getElementById('nav-admin');
 
-            if (view === 'register') {
-                registrationView.classList.remove('hidden');
-                navRegister.classList.add('border-blue-500', 'text-blue-400');
-            } else if (view === 'admin') {
-                adminView.classList.remove('hidden');
-                navAdmin.classList.add('border-blue-500', 'text-blue-400');
-            } else if (view === 'qrcode') {
-                qrcodeView.classList.remove('hidden');
-            }
+    const registrationForm = document.getElementById('registration-form');
+    const registerBtn = document.getElementById('register-btn');
+    const registerAnotherBtn = document.getElementById('register-another-btn');
+    const downloadQrBtn = document.getElementById('download-qr-btn');
+    const errorBox = document.getElementById('error-box');
+
+    const participantsTable = document.getElementById('participants-table');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const exportBtn = document.getElementById('export-btn');
+
+    // Local state
+    let participantsCache = []; // array of participant objects returned by API
+    let currentQrCanvas = null;
+
+    // --- View switching ---
+    function switchView(view) {
+      registrationView.classList.add('hidden');
+      qrcodeView.classList.add('hidden');
+      adminView.classList.add('hidden');
+
+      [navRegister, navAdmin].forEach(btn => {
+        btn.classList.remove('border-blue-500', 'text-blue-400');
+        btn.classList.add('border-transparent', 'text-gray-400');
+      });
+
+      if (view === 'register') {
+        registrationView.classList.remove('hidden');
+        navRegister.classList.add('border-blue-500', 'text-blue-400');
+      } else if (view === 'admin') {
+        adminView.classList.remove('hidden');
+        navAdmin.classList.add('border-blue-500', 'text-blue-400');
+        fetchParticipants();
+      } else if (view === 'qrcode') {
+        qrcodeView.classList.remove('hidden');
+      }
+    }
+
+    // --- Safe JSON parse helper ---
+    async function safeParseJson(response) {
+      const text = await response.text();
+      try { return JSON.parse(text); }
+      catch { return { _rawText: text }; }
+    }
+
+    // --- Registration handler ---
+    registrationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      setBusy(registerBtn, true, 'Generating...');
+
+      const form = e.target;
+      const name = form.name.value.trim();
+      const email = form.email.value.trim();
+
+      if (!name || !email) {
+        showError('Please enter name and email.');
+        setBusy(registerBtn, false);
+        return;
+      }
+
+      try {
+        const resp = await fetch(`${API_BASE_URL}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email })
+        });
+
+        const data = await safeParseJson(resp);
+        if (!resp.ok) {
+          const msg = (data && data.error) ? data.error : (data._rawText || 'Registration failed');
+          throw new Error(msg);
         }
 
-        async function handleRegistration(e) {
-            e.preventDefault();
-            registerBtn.disabled = true;
-            registerBtn.textContent = 'Generating...';
-            errorBox.classList.add('hidden');
-            errorBox.textContent = '';
+        // render QR (safe) and fill details
+        const qEl = document.getElementById('qrcode');
+        qEl.innerHTML = ''; // QR lib writes DOM inside
+        new QRCode(qEl, { text: data.registration_id, width: 160, height: 160 });
 
-            const name = e.target.name.value;
-            const email = e.target.email.value;
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email }),
-                });
+        document.getElementById('display-name').textContent = data.name || name;
+        document.getElementById('display-email').textContent = data.email || email;
+        document.getElementById('display-id').textContent = data.registration_id;
 
-                const data = await response.json();
+        // Save a ref to the QR element for download
+        currentQrCanvas = qEl.querySelector('img') || qEl.querySelector('canvas');
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Registration failed');
-                }
+        switchView('qrcode');
+      } catch (err) {
+        showError(err.message || 'Registration failed');
+      } finally {
+        setBusy(registerBtn, false);
+        registrationForm.reset();
+      }
+    });
 
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), { text: data.registration_id, width: 160, height: 160 });
-                document.getElementById('display-name').textContent = data.name;
-                document.getElementById('display-email').textContent = data.email;
-                document.getElementById('display-id').textContent = data.registration_id;
+    // Download QR image (attempt to download generated img or canvas)
+    downloadQrBtn.addEventListener('click', () => {
+      if (!currentQrCanvas) return alert('No QR available to download.');
+      if (currentQrCanvas.tagName === 'IMG') {
+        const url = currentQrCanvas.src;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'qrcode.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else if (currentQrCanvas.tagName === 'CANVAS') {
+        const url = currentQrCanvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url; a.download = 'qrcode.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      } else {
+        alert('Unable to download QR — unsupported element.');
+      }
+    });
 
-                switchView('qrcode');
+    // Register another
+    registerAnotherBtn.addEventListener('click', () => {
+      switchView('register');
+    });
 
-            } catch (error) {
-                errorBox.textContent = error.message;
-                errorBox.classList.remove('hidden');
-            } finally {
-                registerBtn.disabled = false;
-                registerBtn.textContent = 'Generate My QR Code';
-                registrationForm.reset();
-            }
+    // --- Participants fetch & rendering (safe) ---
+    async function fetchParticipants() {
+      participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-400">Loading...</td></tr>`;
+      try {
+        const resp = await fetch(`${API_BASE_URL}/participants`);
+        const data = await safeParseJson(resp);
+        if (!resp.ok) {
+          const msg = (data && data.error) ? data.error : (data._rawText || 'Failed to fetch participants');
+          throw new Error(msg);
         }
 
-        navRegister.addEventListener('click', () => switchView('register'));
-        navAdmin.addEventListener('click', () => switchView('admin'));
-        registrationForm.addEventListener('submit', handleRegistration);
-        registerAnotherBtn.addEventListener('click', () => switchView('register'));
+        if (!Array.isArray(data)) data = [];
 
-        switchView('register');
-    </script>
+        participantsCache = data;
+        renderParticipantsTable(data);
+      } catch (err) {
+        participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-red-400">${escapeHtml(err.message || 'Failed')}</td></tr>`;
+      }
+    }
+
+    function renderParticipantsTable(list) {
+      participantsTable.innerHTML = '';
+      if (!list || list.length === 0) {
+        participantsTable.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-400">No participants yet.</td></tr>`;
+        return;
+      }
+
+      list.forEach(p => {
+        const tr = document.createElement('tr');
+
+        const tdName = document.createElement('td');
+        tdName.className = 'px-4 py-2';
+        tdName.textContent = p.name || '-';
+        tr.appendChild(tdName);
+
+        const tdEmail = document.createElement('td');
+        tdEmail.className = 'px-4 py-2';
+        tdEmail.textContent = p.email || '-';
+        tr.appendChild(tdEmail);
+
+        const tdAtt = document.createElement('td');
+        tdAtt.className = 'px-4 py-2';
+        tdAtt.textContent = p.attended ? '✅ Yes' : '❌ No';
+        tr.appendChild(tdAtt);
+
+        const tdTime = document.createElement('td');
+        tdTime.className = 'px-4 py-2';
+        tdTime.textContent = p.timestamp ? new Date(p.timestamp).toLocaleString() : '-';
+        tr.appendChild(tdTime);
+
+        const tdAction = document.createElement('td');
+        tdAction.className = 'px-4 py-2';
+
+        if (p.attended) {
+          const span = document.createElement('span');
+          span.className = 'text-green-400';
+          span.textContent = 'Checked In';
+          tdAction.appendChild(span);
+        } else {
+          const btn = document.createElement('button');
+          btn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded';
+          btn.textContent = 'Check In';
+          // store id safely in dataset
+          btn.dataset.regId = p.registration_id;
+          btn.addEventListener('click', () => checkIn(btn.dataset.regId, btn));
+          tdAction.appendChild(btn);
+        }
+
+        tr.appendChild(tdAction);
+        participantsTable.appendChild(tr);
+      });
+    }
+
+    // --- Check in ---
+    async function checkIn(regId, btn) {
+      if (!regId) return alert('Missing registration id.');
+      setBusy(btn, true, 'Checking in...');
+      try {
+        const resp = await fetch(`${API_BASE_URL}/checkin/${encodeURIComponent(regId)}`, { method: 'POST' });
+        const data = await safeParseJson(resp);
+        if (!resp.ok) {
+          const msg = (data && data.error) ? data.error : (data._rawText || 'Check-in failed');
+          throw new Error(msg);
+        }
+        alert(data.message || 'Checked in');
+        await fetchParticipants(); // refresh list
+      } catch (err) {
+        alert('❌ ' + (err.message || 'Check-in failed'));
+      } finally {
+        setBusy(btn, false);
+      }
+    }
+
+    // --- Export to XLSX ---
+    exportBtn.addEventListener('click', () => {
+      if (!participantsCache || participantsCache.length === 0) {
+        return alert('No participants to export.');
+      }
+      // Map safe fields
+      const sheetData = participantsCache.map(p => ({
+        Name: p.name || '',
+        Email: p.email || '',
+        RegistrationID: p.registration_id || '',
+        CheckedIn: p.attended ? 'Yes' : 'No',
+        Timestamp: p.timestamp ? new Date(p.timestamp).toLocaleString() : ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Participants');
+      XLSX.writeFile(wb, 'participants.xlsx');
+    });
+
+    // --- Utility helpers ---
+    function setBusy(el, busy = true, busyText = '') {
+      if (!el) return;
+      if (busy) {
+        el.disabled = true;
+        if (busyText) el.__origText = el.textContent, el.textContent = busyText;
+      } else {
+        el.disabled = false;
+        if (el.__origText) el.textContent = el.__origText, el.__origText = null;
+      }
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.remove('hidden');
+    }
+    function clearError() {
+      errorBox.textContent = '';
+      errorBox.classList.add('hidden');
+    }
+
+    // Basic escape for fallback UI messages
+    function escapeHtml(s) {
+      if (!s) return '';
+      return s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'": '&#39;' }[m]));
+    }
+
+    // --- Nav listeners ---
+    navRegister.addEventListener('click', () => switchView('register'));
+    navAdmin.addEventListener('click', () => switchView('admin'));
+    refreshBtn.addEventListener('click', fetchParticipants);
+
+    // initial view
+    switchView('register');
+
+    // Optional: if you want QR scanning to check-in (requires html5-qrcode lib)
+    /*
+    const scanBtn = document.getElementById('scan-btn');
+    scanBtn?.addEventListener('click', () => {
+      // show a modal or replace admin view area with #reader and start html5-qrcode scanning
+      // On successful decode, call checkIn(decodedText)
+      // Be sure to stop scanner after successful scan
+    });
+    */
+
+  })();
+  </script>
 </body>
 </html>
