@@ -19,26 +19,19 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-
 // --- Express App Setup ---
 const app = express();
 
-// --- IMPORTANT: CORS Configuration Update ---
-// Define the specific URL of your live frontend application.
+// --- CORS Configuration ---
 const frontendURL = 'https://eventsphere-register.onrender.com';
-
 const corsOptions = {
   origin: frontendURL,
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200
 };
-
-// Use the new CORS options
 app.use(cors(corsOptions));
- 
 app.use(express.json());
 
-
-// --- API Endpoints (No changes needed here) ---
+// --- API Endpoints ---
 
 // Register a new participant
 app.post('/register', async (req, res) => {
@@ -46,6 +39,7 @@ app.post('/register', async (req, res) => {
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required.' });
   }
+
   const registrationId = crypto.randomUUID();
   try {
     const query = 'INSERT INTO participants(registration_id, name, email) VALUES($1, $2, $3) RETURNING *';
@@ -53,6 +47,10 @@ app.post('/register', async (req, res) => {
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    if (error.code === "23505") {
+      // Unique violation error
+      return res.status(400).json({ error: "This email is already registered." });
+    }
     console.error('Registration Error:', error);
     res.status(500).json({ error: 'An error occurred during registration.' });
   }
@@ -98,6 +96,3 @@ app.post('/checkin/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-    
-
