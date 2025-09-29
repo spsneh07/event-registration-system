@@ -1,15 +1,20 @@
 {
-  "name": "event-backend",
+  "name": "eventsphere-backend",
   "version": "1.0.0",
-  "description": "Backend server for the Event Attendance System using Node.js and PostgreSQL.",
+  "description": "Backend server for the EventSphere registration and attendance system.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^4.18.2",
-    "pg": "^8.11.3"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "pg": "^8.11.5"
   }
 }
